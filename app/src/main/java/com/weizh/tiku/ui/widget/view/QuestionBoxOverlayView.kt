@@ -47,7 +47,7 @@ class QuestionBoxOverlayView @JvmOverloads constructor(
     }
 
     private val mNormRects = ArrayList<RectF>()
-    private var mSelectedIndex = 0
+    private var mSelectedIndex = -1   // 默认不高亮，点哪个才高亮哪个（否则一上来第一个框是橙红色，很扎眼）
     private var mEditingIndex = -1
     private var mReadOnly = false
     private var mAdjustedFlags: BooleanArray? = null

@@ -71,8 +71,21 @@ class ResultAdapter(private val scanMode: Boolean = false) :
 
         h.card?.let { b ->
             b.tvTitle.text = q.question
-            b.tvDesc.text = optionsText
-            b.tvExam.text = "答案：" + answerLabel(q.answer, q.options)
+            // 云端兜底的答案里可能带着 "\n\n【AI 解析】xxx"，直接塞进答案胶囊会被裁掉，
+            // 所以拆开：答案进胶囊，解析放到下面那一行（题目没选项时那行本来是空的）
+            val rawAns = q.answer
+            val mark = "\n\n【AI 解析】"
+            val cut = rawAns.indexOf(mark)
+            val ansOnly = if (cut >= 0) rawAns.substring(0, cut) else rawAns
+            val explain = if (cut >= 0) rawAns.substring(cut + 1) else ""
+            b.tvExam.text = "答案：" + answerLabel(ansOnly, q.options)
+            b.tvDesc.text = buildString {
+                if (optionsText.isNotEmpty()) append(optionsText)
+                if (explain.isNotEmpty()) {
+                    if (isNotEmpty()) append("\n\n")
+                    append(explain)
+                }
+            }
         }
     }
 
