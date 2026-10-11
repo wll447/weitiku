@@ -108,7 +108,10 @@ object OcrSearch {
                         id = 0, tid = AI_TID,
                         question = a.question,
                         answers = a.options.joinToString(com.weizh.tiku.data.Db.DELIM_A),
-                        answer = a.answer.ifBlank { "AI 未给答案，仅识别出题干" }
+                        answer = buildString {
+                            append(a.answer.ifBlank { "题目已识别，但未能给出答案（可到设置里检查云端 AI 是否正常）" })
+                            if (a.explain.isNotBlank()) append("\n\n【AI 解析】").append(a.explain)
+                        }
                     ),
                     score = 0.0, lcs = 0, ratio = 1.0
                 )
