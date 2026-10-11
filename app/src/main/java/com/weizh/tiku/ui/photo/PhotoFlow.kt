@@ -601,20 +601,9 @@ class PhotoResultActivity : AppCompatActivity() {
                 if (lines.isNullOrEmpty()) emptyList()
                 else QuestionRegion.pickQuestions(lines, src.width, src.height)
             }
-            if (boxes.isNotEmpty()) {
-                boxTexts = boxes.map { it.second }
-                b.boxOverlay.bind(b.ivPhotoImage, src.width, src.height)
-                b.boxOverlay.setRects(boxes.map { it.first })
-                b.boxOverlay.setAdjustedFlags(BooleanArray(boxes.size))
-                b.boxOverlay.setOnBoxEditListener(object : com.weizh.tiku.ui.widget.view.QuestionBoxOverlayView.OnBoxEditListener {
-                    override fun onBoxTap(index: Int) { scrollToBox(index) }
-                    override fun onBoxEditConfirmed(index: Int, normRect: android.graphics.RectF) {
-                        toast("已更新第 ${index + 1} 个框")
-                    }
-                    override fun onBoxEditCancelled(index: Int) {}
-                })
-                b.tvOcr.text = "识别到 ${boxes.size} 道题 · 点框定位，长按框可微调"
-            }
+            // 照片上不再画题目框（用户要求去掉；取景时的实时框保留在相机页）
+            b.boxOverlay.visibility = android.view.View.GONE
+            if (boxes.isNotEmpty()) boxTexts = boxes.map { it.second }
             b.tvOcr.text = if (text.isEmpty()) "没识别到文字，点右上角「调整裁剪图」重新框选" else "识别：$text"
             adapter.submit(rows)
             if (rows.isEmpty() && text.isNotEmpty()) {
