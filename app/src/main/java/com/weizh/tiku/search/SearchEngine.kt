@@ -107,19 +107,27 @@ class SearchEngine {
 
         /** 最长公共子序列长度 */
         fun lcsLength(a: String, b: String): Int {
+            // 最长公共【连续子串】—— 必须连续！
+            // 之前写成"最长公共子序列"（允许跳字）会导致严重误匹配：
+            //   「架空配电线路的挡距不得大于()m，线间距离不得小于0.3m」
+            //   会跟「…与牵引供电设备带电部分的距离不得少于()。」凑出 7 分的子序列，
+            //   而两者的最长连续子串只有 4 字（"距离不得"）。同类产品的 lcs 就是连续子串，
+            //   并在索引层规定 <= 5 字直接判为"没匹配到"。
             if (a.isEmpty() || b.isEmpty()) return 0
-            val n = b.length
-            var prev = IntArray(n + 1)
-            var cur = IntArray(n + 1)
+            var best = 0
+            val m = b.length
+            var prev = IntArray(m + 1)
+            var cur = IntArray(m + 1)
             for (i in 1..a.length) {
                 val ca = a[i - 1]
-                for (j in 1..n) {
-                    cur[j] = if (ca == b[j - 1]) prev[j - 1] + 1 else maxOf(prev[j], cur[j - 1])
+                for (j in 1..m) {
+                    cur[j] = if (ca == b[j - 1]) prev[j - 1] + 1 else 0
+                    if (cur[j] > best) best = cur[j]
                 }
-                val t = prev; prev = cur; cur = t
+                val tmp = prev; prev = cur; cur = tmp
                 java.util.Arrays.fill(cur, 0)
             }
-            return prev[n]
+            return best
         }
 
         /** 最长公共子序列文本（用于展示命中片段） */

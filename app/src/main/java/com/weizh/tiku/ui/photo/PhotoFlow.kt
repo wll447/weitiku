@@ -111,7 +111,13 @@ object OcrSearch {
         for (a in ai) {
             val (loc, _) = SearchEngine.get().searchText(a.question + a.options.joinToString(""), 1)
             val lh = loc.firstOrNull()
-            if (lh != null && lh.lcs >= 6) { hits.add(lh); continue }
+            // 这里也必须是同一套门槛：之前只写 lcs >= 6，结果
+            // 「…110KV的距离不得小于()」靠"距离不得小于"这 6 个连续字就冒充命中，
+            // 把 AI 真正该回答的题顶掉了
+            val askLen = (a.question + a.options.joinToString("")).count { !it.isWhitespace() }
+            if (lh != null && lh.lcs >= localMatchMinLcs(askLen) && lh.ratio >= LOCAL_MATCH_MIN_RATIO) {
+                hits.add(lh); continue
+            }
             hits.add(
                 SearchEngine.ScanHit(
                     com.weizh.tiku.data.Question(
@@ -622,7 +628,8 @@ private const val LOCAL_MATCH_MIN_RATIO = 0.6
  * 永远达不到 8，所以短查询按 60% 放宽，下限 3。
  */
 private fun localMatchMinLcs(queryLen: Int): Int =
-    minOf(8, maxOf(3, (queryLen * LOCAL_MATCH_MIN_RATIO).toInt()))
+    // 下限 6：同类产品在索引层规定"最长连续公共子串 <= 5 字直接判为没匹配到"
+    minOf(8, maxOf(6, (queryLen * LOCAL_MATCH_MIN_RATIO).toInt()))
 
 private fun isNearlyBlack(bmp: Bitmap): Boolean {
     val w = bmp.width
