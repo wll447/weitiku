@@ -39,6 +39,24 @@ class OcrIsolateService : Service() {
             }
         }
 
+        override fun detectLayoutFile(path: String): String? {
+            if (!LayoutEngine.ensureLoaded(this@OcrIsolateService)) return null
+            val bmp = runCatching { BitmapFactory.decodeFile(path) }.getOrNull() ?: return null
+            return try {
+                buildString {
+                    for (r in LayoutEngine.detect(bmp)) {
+                        append(r.rect.left).append(',').append(r.rect.top).append(',')
+                            .append(r.rect.right).append(',').append(r.rect.bottom).append(',')
+                            .append(r.score).append(',').append(r.classId).append('\n')
+                    }
+                }
+            } catch (t: Throwable) {
+                Log.e(TAG, "layout detect failed", t); null
+            } finally {
+                bmp.recycle()
+            }
+        }
+
         override fun recognizeFile(path: String): String {
             OcrEngine.ensureLoaded(this@OcrIsolateService)
             if (!OcrEngine.isReady) return ""
@@ -70,6 +88,7 @@ class OcrIsolateService : Service() {
     override fun onCreate() {
         super.onCreate()
         // 进程一起来就预热，避免第一次识别卡顿
+        // Layout is lazy-loaded only by photo workflows; scanning should not pay its memory cost.
         Thread { runCatching { OcrEngine.ensureLoaded(this) } }.start()
     }
 

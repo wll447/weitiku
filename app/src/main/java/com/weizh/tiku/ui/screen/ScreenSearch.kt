@@ -201,11 +201,12 @@ class ScreenSearchService : Service() {
         }.getOrNull() ?: return
         bmp.recycle()
 
-        val (text, rows) = OcrSearch.run(this, crop, 3)
+        val result = OcrSearch.run(this, crop, 3)
         crop.recycle()
+        val text = result.text
         if (text.isEmpty() || text == lastText) return
         lastText = text
-        updatePanel(text, rows)
+        updatePanel(text, result.hits)
     }
 
     /** 识别区（屏幕坐标，VirtualDisplay 与屏幕 1:1，所以直接就是图像坐标） */

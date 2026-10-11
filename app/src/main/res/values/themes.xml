@@ -3,11 +3,13 @@
     <style name="Theme.WeiTiku" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="android:statusBarColor">@color/brand_primary</item>
+        <item name="android:statusBarColor">@color/ink</item>
+        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <style name="NavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">#1FFF6B35</item>
+        <item name="android:color">#1FB45B35</item>
     </style>
 
     <style name="Theme.WeiTiku.Fullscreen" parent="Theme.WeiTiku">

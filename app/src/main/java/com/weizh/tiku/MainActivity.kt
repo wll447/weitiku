@@ -63,6 +63,10 @@ class MainActivity : AppCompatActivity() {
             Log.i("WeiTikuSelfTest", "trigger ocr test")
             runOcrTest()
         }
+        if (BuildConfig.DEBUG && intent?.getBooleanExtra("layouttest", false) == true) {
+            Log.i("WeiTikuSelfTest", "trigger layout test")
+            runLayoutTest()
+        }
         // 导入自检：adb push 文件到 /data/data/com.weizh.tiku/files/ 后
         //   adb shell am start -n com.weizh.tiku/.MainActivity --es importtest 文件名.xls
         if (BuildConfig.DEBUG) {
@@ -192,6 +196,53 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------------- 自检 ----------------
+
+    /** Layout self-test: validates model loading, decode/NMS and original-image coordinates. */
+    private fun runLayoutTest() {
+        lifecycleScope.launch(Dispatchers.Default) {
+            val tag = "WeiTikuSelfTest"
+            fun log(s: String) = Log.i(tag, s)
+            try {
+                var t = System.currentTimeMillis()
+                val loaded = com.weizh.tiku.ocr.LayoutEngine.ensureLoaded(this@MainActivity)
+                log("layout load=$loaded in ${System.currentTimeMillis() - t}ms")
+                val customPath = intent?.getStringExtra("layoutpath")
+                val bmp = if (!customPath.isNullOrBlank()) {
+                    android.graphics.BitmapFactory.decodeFile(customPath)
+                } else {
+                    assets.open("ocr/test.png").use { android.graphics.BitmapFactory.decodeStream(it) }
+                }
+                requireNotNull(bmp) { "layout test image decode failed: $customPath" }
+                t = System.currentTimeMillis()
+                val regions = com.weizh.tiku.ocr.LayoutEngine.detect(bmp)
+                log("layout regions=${regions.size} in ${System.currentTimeMillis() - t}ms")
+                t = System.currentTimeMillis()
+                val regionsWarm = com.weizh.tiku.ocr.LayoutEngine.detect(bmp)
+                log("layout warm regions=${regionsWarm.size} in ${System.currentTimeMillis() - t}ms")
+                regions.take(20).forEachIndexed { i, r ->
+                    log("  #${i + 1} ${r.label} score=${"%.3f".format(r.score)} " +
+                        "box=${r.rect.left.toInt()},${r.rect.top.toInt()},${r.rect.right.toInt()},${r.rect.bottom.toInt()}")
+                }
+                val remoteLines = com.weizh.tiku.ocr.OcrClient.recognize(this@MainActivity, bmp).orEmpty()
+                val anchors = regions.map { r ->
+                    com.weizh.tiku.ocr.OcrClient.LayoutRegion(r.rect, r.score, r.classId)
+                }
+                val picked = com.weizh.tiku.ui.photo.QuestionRegion.pickSingleQuestion(
+                    anchors, remoteLines, bmp.width, bmp.height
+                )
+                log("question crop lines=${remoteLines.size} picked=" +
+                    (picked?.let { "${it.left},${it.top},${it.right},${it.bottom}" } ?: "null"))
+                val groups = com.weizh.tiku.ui.photo.QuestionRegion.pickQuestions(
+                    remoteLines, bmp.width, bmp.height, anchors
+                )
+                log("question groups=${groups.size} " + groups.joinToString(" | ") { it.second.take(36) })
+                bmp.recycle()
+                log("LAYOUT TEST DONE")
+            } catch (e: Throwable) {
+                Log.e(tag, "LAYOUT TEST FAILED: ${e.message}", e)
+            }
+        }
+    }
 
     private fun runSelfTest() {
         lifecycleScope.launch(Dispatchers.IO) {

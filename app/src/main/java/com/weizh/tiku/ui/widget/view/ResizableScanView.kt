@@ -75,6 +75,8 @@ class ResizableScanView @JvmOverloads constructor(
     /** 框被用户改动过（用于点亮「重置识别区域」，对齐同类产品 updateResetButtonStyle） */
     var onScanAreaChanged: ((changed: Boolean) -> Unit)? = null
     private var mChanged = false
+    var hasUserAdjusted = false
+        private set
 
     private val mScaleDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
@@ -265,6 +267,7 @@ class ResizableScanView @JvmOverloads constructor(
     }
 
     private fun markChanged() {
+        hasUserAdjusted = true
         if (!mChanged) {
             mChanged = true
             onScanAreaChanged?.invoke(true)
@@ -283,6 +286,7 @@ class ResizableScanView @JvmOverloads constructor(
             mDefaultRect.set(mRectF)
         }
         mChanged = false
+        hasUserAdjusted = false
         onScanAreaChanged?.invoke(false)
         invalidate()
     }
@@ -298,6 +302,7 @@ class ResizableScanView @JvmOverloads constructor(
 
     /** 选到整张图（本 View 覆盖整图时即全屏） */
     fun selectAll() {
+        hasUserAdjusted = true
         mRectF.set(0f, 0f, width.toFloat(), height.toFloat())
         constrainToBounds()
         mChanged = true

@@ -38,25 +38,37 @@ import java.io.FileOutputStream
 
 /** OCR + 检索的公共入口：拍照搜题和录屏搜题共用 */
 object OcrSearch {
-    suspend fun run(ctx: Context, bmp: Bitmap, topN: Int = 10): Pair<String, List<SearchEngine.ScanHit>> {
+    data class RunResult(
+        val text: String,
+        val hits: List<SearchEngine.ScanHit>,
+        val lines: List<com.weizh.tiku.ocr.OcrClient.Line>
+    )
+
+    suspend fun run(ctx: Context, bmp: Bitmap, topN: Int = 10): RunResult {
         if (!SearchEngine.get().isReady) Repo.rebuildIndex(ctx)
 
+        val recognized = ArrayList<com.weizh.tiku.ocr.OcrClient.Line>()
         // ① 优先走 :ocr 隔离进程（照原版设计：模型不占主进程内存）
         val iso = withContext(Dispatchers.IO) { OcrClient.recognize(ctx, bmp) }
         val lines = ArrayList<String>()
         if (iso != null) {
-            iso.forEach { if (it.text.isNotBlank()) lines.add(it.text.trim()) }
+            iso.forEach {
+                if (it.text.isNotBlank()) {
+                    recognized.add(it)
+                    lines.add(it.text.trim())
+                }
+            }
         } else {
             // ② 隔离进程不可用 → 回退到进程内 OCR
             OcrEngine.ensureLoaded(ctx)
-            if (!OcrEngine.isReady) return "" to emptyList()
+            if (!OcrEngine.isReady) return RunResult("", emptyList(), recognized)
             for (box in OcrEngine.detect(bmp)) {
                 val line = OcrEngine.recognizeLine(bmp, box)
                 if (line.isNotBlank()) lines.add(line.trim())
             }
         }
         val text = lines.joinToString(" ")
-        if (text.isEmpty()) return "" to emptyList()
+        if (text.isEmpty()) return RunResult("", emptyList(), recognized)
 
         // ① 整段当一道题去匹配
         var (rows, _) = SearchEngine.get().searchForScan(text, topN)
@@ -68,7 +80,7 @@ object OcrSearch {
         val qLen = text.count { !it.isWhitespace() }
         val needLcs = localMatchMinLcs(qLen)
         rows = rows.filter { it.lcs >= needLcs && it.ratio >= LOCAL_MATCH_MIN_RATIO }
-        if (rows.isNotEmpty()) return text to rows
+        if (rows.isNotEmpty()) return RunResult(text, rows, recognized)
 
         // ② 整段匹配不到，说明拍到了整页（多道题/带其他文字）：
         //    逐行找"最像题干"的一行分别检索，取公共片段最长的那条结果。
@@ -80,21 +92,21 @@ object OcrSearch {
             if (top.lcs < localMatchMinLcs(lLen) || top.ratio < LOCAL_MATCH_MIN_RATIO) return@mapNotNull null
             Best(line, h, top.lcs)
         }
-        val best = cands.maxByOrNull { it.lcs } ?: return cloudTry(ctx, bmp, text)
+        val best = cands.maxByOrNull { it.lcs } ?: return cloudTry(ctx, bmp, text, recognized)
 
         val idx = lines.indexOf(best.line)
         val ctxLine = lines.subList(maxOf(0, idx - 1), minOf(lines.size, idx + 4)).joinToString(" ")
         val (rows2, _) = SearchEngine.get().searchForScan(ctxLine, topN)
         // 返回"实际命中用的那段文本"，不要返回整页原文——否则 Word 工具栏之类
         // 的界面文字会一起显示在「识别：」里
-        if (rows2.isNotEmpty()) return ctxLine to rows2
+        if (rows2.isNotEmpty()) return RunResult(ctxLine, rows2, recognized)
 
         // ③ 还不行 → 用选项乱序排列匹配（照原版 allPerm：题库之间选项顺序不同也能对上）
         val perm = SearchEngine.get().searchWithPermutations(ctxLine, topN)
-        if (perm.isNotEmpty()) return ctxLine to perm
+        if (perm.isNotEmpty()) return RunResult(ctxLine, perm, recognized)
 
         // ④ 本地彻底没辙 → 云端 VLM 兜底（结构化 + 补答案）。开关在「我的-设置」里，默认关。
-        return cloudTry(ctx, bmp, text)
+        return cloudTry(ctx, bmp, text, recognized)
     }
 
     /**
@@ -103,10 +115,11 @@ object OcrSearch {
      * 未开启 / 网络失败 / 解析失败 → 返回原文本 + 空结果（不影响主流程）。
      */
     private suspend fun cloudTry(
-        ctx: Context, bmp: Bitmap, text: String
-    ): Pair<String, List<SearchEngine.ScanHit>> {
+        ctx: Context, bmp: Bitmap, text: String,
+        lines: List<com.weizh.tiku.ocr.OcrClient.Line>
+    ): RunResult {
         val ai = withContext(Dispatchers.IO) { com.weizh.tiku.cloud.CloudVlm.structure(ctx, bmp) }
-        if (ai.isNullOrEmpty()) return text to emptyList()
+        if (ai.isNullOrEmpty()) return RunResult(text, emptyList(), lines)
         val hits = ArrayList<SearchEngine.ScanHit>()
         for (a in ai) {
             val (loc, _) = SearchEngine.get().searchText(a.question + a.options.joinToString(""), 1)
@@ -133,7 +146,7 @@ object OcrSearch {
                 )
             )
         }
-        return text to hits
+        return RunResult(text, hits, lines)
     }
 
     /** 云端结果的标记 tid，UI 上据此显示"来源：AI" */
@@ -269,9 +282,16 @@ class PhotoCameraActivity : AppCompatActivity() {
 
         lifecycleScope.launch(Dispatchers.Default) {
             try {
-                val boxes = com.weizh.tiku.ocr.OcrClient.detect(this@PhotoCameraActivity, bmp)
-                if (boxes.isNullOrEmpty()) return@launch
-                val norm = QuestionRegion.pickFromBoxes(boxes, bmp.width, bmp.height) ?: return@launch
+                // Layout regions are more stable than individual OCR glyph boxes for
+                // live question framing. Fall back to text detection if the model is
+                // unavailable or returns no useful region.
+                val layout = com.weizh.tiku.ocr.OcrClient.detectLayout(this@PhotoCameraActivity, bmp)
+                val layoutNorm = layout?.let { QuestionRegion.pickFromLayout(it, bmp.width, bmp.height) }
+                val norm = layoutNorm ?: run {
+                    val boxes = com.weizh.tiku.ocr.OcrClient.detect(this@PhotoCameraActivity, bmp)
+                    if (boxes.isNullOrEmpty()) return@run null
+                    QuestionRegion.pickFromBoxes(boxes, bmp.width, bmp.height)
+                } ?: return@launch
                 liveNorm = norm
                 val v = normToView(norm, bmp.width, bmp.height)
                 runOnUiThread { b.boxOverlay.setBoxes(listOf(v)) }
@@ -473,16 +493,24 @@ class PhotoCropActivity : AppCompatActivity() {
      */
     private fun autoPickRegion(src: Bitmap) {
         lifecycleScope.launch {
+            // First use the CDLA layout model: it is cheaper and more stable for
+            // page chrome/multi-column layouts than inferring a question from OCR lines.
+            val layout = withContext(Dispatchers.IO) {
+                com.weizh.tiku.ocr.OcrClient.detectLayout(this@PhotoCropActivity, src)
+            } ?: emptyList()
+            // Layout supplies anchors, OCR supplies the full stem+options extent.
+            // This avoids cropping the first title region while still retaining the
+            // old OCR-only fallback when layout is unavailable.
             val lines = withContext(Dispatchers.IO) {
                 com.weizh.tiku.ocr.OcrClient.recognize(this@PhotoCropActivity, src)
+            } ?: emptyList()
+            val rectInImg = if (lines.isNotEmpty()) {
+                QuestionRegion.pickSingleQuestion(layout, lines, src.width, src.height)
+            } else {
+                QuestionRegion.pickFromLayout(layout, src.width, src.height)
             }
-            if (lines.isNullOrEmpty()) {
-                b.tvPhotoPoints.text = "没检测到文字，可手动拖动取景框"
-                return@launch
-            }
-            val rectInImg = QuestionRegion.pick(lines, src.width, src.height)
             if (rectInImg == null) {
-                b.tvPhotoPoints.text = "没框到明显题目，可手动拖动取景框"
+                b.tvPhotoPoints.text = "没检测到题目，可手动拖动取景框"
                 return@launch
             }
             // 同样要等布局完成再设框
@@ -588,24 +616,21 @@ class PhotoResultActivity : AppCompatActivity() {
             if (src == null) { b.tvOcr.text = "图片读取失败"; return@launch }
             b.ivPhotoImage.setImageBitmap(src)
             b.tvOcr.text = "识别中…"
-            val (text, rows) = withContext(Dispatchers.IO) { OcrSearch.run(this@PhotoResultActivity, src, 20) }
+            val result = withContext(Dispatchers.IO) { OcrSearch.run(this@PhotoResultActivity, src, 20) }
+            val text = result.text
+            val rows = result.hits
 
-            // 【模型级】云端 VLM 直接给出每道题的归一化框（对齐同类产品：框来自题目识别模型）
-            // 未开云端/取不到时，回退到本地 det 行框 + 规则切分
-            val ai = withContext(Dispatchers.IO) {
-                com.weizh.tiku.cloud.CloudVlm.structure(this@PhotoResultActivity, src)
+            // 题目框优先使用本地 layout + OCR 规则切分，不再为了框坐标重复
+            // 上传同一张图片到云端 VLM。云端只由 OcrSearch.run() 在本地无命中时调用。
+            val layout = withContext(Dispatchers.IO) {
+                com.weizh.tiku.ocr.OcrClient.detectLayout(this@PhotoResultActivity, src)
             }
-            // 注意：ai 在"云端未开启/请求失败"时是 null，这里必须判空——
-            // 之前写成 ai!! 会在没配 API Key 的机器上直接 NPE 崩溃
-            val boxes: List<Pair<android.graphics.RectF, String>> =
-                if (!ai.isNullOrEmpty() && ai.all { it.box != null }) {
-                    ai.map { it.box!! to it.question }
-                } else {
-                val lines = withContext(Dispatchers.IO) {
-                    com.weizh.tiku.ocr.OcrClient.recognize(this@PhotoResultActivity, src)
+            val boxes: List<Pair<android.graphics.RectF, String>> = when {
+                result.lines.isNotEmpty() -> QuestionRegion.pickQuestions(result.lines, src.width, src.height, layout ?: emptyList())
+                !layout.isNullOrEmpty() -> layout.map {
+                    it.rect to com.weizh.tiku.ocr.LayoutEngine.CLASS_NAMES.getOrElse(it.classId) { "区域" }
                 }
-                if (lines.isNullOrEmpty()) emptyList()
-                else QuestionRegion.pickQuestions(lines, src.width, src.height)
+                else -> emptyList()
             }
             // 照片上不再画题目框（用户要求去掉；取景时的实时框保留在相机页）
             b.boxOverlay.visibility = android.view.View.GONE

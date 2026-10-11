@@ -21,4 +21,10 @@ interface IOcrIsolate {
      * 实时取景框题要每 ~700ms 跑一次，识别那步太慢，只有检测跟得上。
      */
     String detectFile(String path);
+
+    /**
+     * 版面区域检测。返回每行：left,top,right,bottom,score,classId。
+     * 坐标位于输入图片坐标系；模型只给版面区域，不直接给完整题目。
+     */
+    String detectLayoutFile(String path);
 }

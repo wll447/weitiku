@@ -13,8 +13,8 @@ android {
         applicationId = "com.weizh.tiku"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
         ndk {
             // 只保留手机(arm64)与模拟器(x86_64)，避免 ONNX Runtime 四套 so 撑大包体
             abiFilters += listOf("arm64-v8a", "x86_64")

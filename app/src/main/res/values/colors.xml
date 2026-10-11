@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="brand_primary">#FF6B35</color>
-    <color name="brand_primary_dark">#E85A28</color>
+    <color name="brand_primary">#FFB45B35</color>
+    <color name="brand_primary_dark">#FF8E4327</color>
+    <color name="ink">#FF1E2A35</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="bg_page">#FFF7F3</color>
-    <color name="text_main">#FF222222</color>
-    <color name="text_sub">#FF888888</color>
-    <color name="divider">#FFEDEDED</color>
+    <color name="bg_page">#FFF4F2EE</color>
+    <color name="text_main">#FF202A33</color>
+    <color name="text_sub">#FF6C747B</color>
+    <color name="divider">#FFE2E0DB</color>
+    <color name="border_soft">#FFE1E0DC</color>
 
     <!-- 以下照同类产品 colors.xml 取值 -->
     <color name="black">#FF000000</color>

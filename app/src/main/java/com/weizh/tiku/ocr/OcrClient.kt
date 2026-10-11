@@ -22,6 +22,12 @@ object OcrClient {
 
     data class Line(val text: String, val left: Float, val top: Float, val right: Float, val bottom: Float)
 
+    data class LayoutRegion(
+        val rect: android.graphics.RectF,
+        val score: Float,
+        val classId: Int
+    )
+
     @Volatile private var remote: IOcrIsolate? = null
     @Volatile private var connected = false
     @Volatile private var binding = false
@@ -104,6 +110,40 @@ object OcrClient {
         } catch (t: Throwable) {
             Log.e(TAG, "detect failed", t); null
         } finally {
+            runCatching { f.delete() }
+        }
+    }
+
+    /** 版面区域检测。不可用返回 null，空列表表示模型成功但没有区域。 */
+    fun detectLayout(ctx: Context, bmp: Bitmap): List<LayoutRegion>? {
+        val r = bind(ctx) ?: return null
+        // Unique files prevent overlapping crop/live requests overwriting one another.
+        val f = File.createTempFile("layout_", ".png", ctx.cacheDir)
+        val scale = minOf(1f, 1280f / maxOf(bmp.width, bmp.height))
+        val input = if (scale < 1f) Bitmap.createScaledBitmap(bmp,
+            (bmp.width * scale).toInt().coerceAtLeast(1),
+            (bmp.height * scale).toInt().coerceAtLeast(1), true) else bmp
+        val sx = bmp.width.toFloat() / input.width
+        val sy = bmp.height.toFloat() / input.height
+        return try {
+            FileOutputStream(f).use { check(input.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            val raw = r.detectLayoutFile(f.absolutePath) ?: return null
+            if (raw.isBlank()) return emptyList()
+            raw.trim().split('\n').mapNotNull { row ->
+                val c = row.split(',')
+                if (c.size < 6) return@mapNotNull null
+                runCatching {
+                    LayoutRegion(
+                        android.graphics.RectF(c[0].toFloat() * sx, c[1].toFloat() * sy,
+                            c[2].toFloat() * sx, c[3].toFloat() * sy),
+                        c[4].toFloat(), c[5].toInt()
+                    )
+                }.getOrNull()
+            }
+        } catch (t: Throwable) {
+            Log.e(TAG, "layout detect failed", t); null
+        } finally {
+            if (input !== bmp) input.recycle()
             runCatching { f.delete() }
         }
     }
