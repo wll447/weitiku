@@ -141,12 +141,21 @@ class SettingsActivity : AppCompatActivity() {
                     val list = withContext(Dispatchers.IO) { CloudVlm.listModels(ctx) }
                     text = "获取"
                     isEnabled = true
-                    if (list.isNullOrEmpty()) {
-                        toast("没取到模型列表（该厂商可能不支持 /models 接口，或 Key 不对）")
+                    // 关键：上游 /models 接口**通常只返回文本模型**
+                    //（实测智谱一个视觉模型都不返回），所以把内置的视觉模型并进来，
+                    // 并标注来源，保证「获取」一定能选出能用的视觉模型。
+                    val ids = ArrayList<String>()
+                    val labels = ArrayList<String>()
+                    for (m in picked.visionModels) {
+                        ids.add(m); labels.add("$m　（内置·视觉）")
+                    }
+                    list?.forEach { m -> if (m !in ids) { ids.add(m); labels.add("$m　（接口）") } }
+                    if (ids.isEmpty()) {
+                        toast("没取到模型：该厂商不支持 /models 且无内置列表，请手填")
                     } else {
                         AlertDialog.Builder(ctx)
-                            .setTitle("选择模型（共 ${list.size} 个）")
-                            .setItems(list.toTypedArray()) { _, i -> etModel.setText(list[i]) }
+                            .setTitle("选择模型（内置 ${picked.visionModels.size} · 接口 ${list?.size ?: 0}）")
+                            .setItems(labels.toTypedArray()) { _, i -> etModel.setText(ids[i]) }
                             .setNegativeButton("取消", null)
                             .show()
                     }
