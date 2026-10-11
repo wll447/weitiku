@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 魏题库共用样式：二级/三级页面一律用这些，保证多页面视觉一致 -->
+<resources>
+
+    <!-- 基样式：Android 会把 "WeiTiku.Toolbar" 解析为隐式继承自 "WeiTiku"，
+         所以必须先定义这个空的基样式，否则 AAPT 报 resource style/WeiTiku not found -->
+    <style name="WeiTiku" />
+
+    <!-- WeiTiku.Text.* 同样需要中间基样式 -->
+    <style name="WeiTiku.Text" />
+
+    <!-- ============ 顶部栏（二级/三级页面统一形态）============ -->
+    <style name="WeiTiku.Toolbar">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/toolbar_height</item>
+        <item name="android:background">@color/white</item>
+    </style>
+
+    <style name="WeiTiku.Toolbar.Back">
+        <item name="android:layout_width">@dimen/toolbar_back</item>
+        <item name="android:layout_height">@dimen/toolbar_back</item>
+        <item name="android:layout_centerVertical">true</item>
+        <item name="android:layout_marginLeft">@dimen/toolbar_margin_h</item>
+        <item name="android:padding">@dimen/toolbar_back_padding</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:src">@drawable/ic_back</item>
+    </style>
+
+    <style name="WeiTiku.Toolbar.Title">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_centerInParent">true</item>
+        <item name="android:maxWidth">200dp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">middle</item>
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:textColor">@color/text_main</item>
+    </style>
+
+    <!-- 顶栏右侧动作（文字按钮，品牌色） -->
+    <style name="WeiTiku.Toolbar.Action">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:layout_alignParentRight">true</item>
+        <item name="android:layout_centerVertical">true</item>
+        <item name="android:layout_marginRight">@dimen/toolbar_margin_h</item>
+        <item name="android:background">@drawable/bg_pill_ghost</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingLeft">12dp</item>
+        <item name="android:paddingRight">12dp</item>
+        <item name="android:textSize">@dimen/text_hint</item>
+        <item name="android:textColor">@color/brand_primary</item>
+    </style>
+
+    <!-- ============ 页面底色 ============ -->
+    <style name="WeiTiku.Page">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@color/bg_page</item>
+    </style>
+
+    <!-- ============ 卡片 ============ -->
+    <style name="WeiTiku.Card">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">@dimen/card_margin_h</item>
+        <item name="android:layout_marginRight">@dimen/card_margin_h</item>
+        <item name="android:layout_marginTop">@dimen/card_margin_v</item>
+        <item name="cardCornerRadius">@dimen/card_radius</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+
+    <!-- ============ 文字层级 ============ -->
+    <style name="WeiTiku.Text.PageTitle">
+        <item name="android:textSize">@dimen/text_page_title</item>
+        <item name="android:textColor">@color/text_main</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="WeiTiku.Text.Section">
+        <item name="android:textSize">@dimen/text_section_title</item>
+        <item name="android:textColor">@color/text_main</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="WeiTiku.Text.Body">
+        <item name="android:textSize">@dimen/text_body</item>
+        <item name="android:textColor">@color/text_main</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+
+    <style name="WeiTiku.Text.Hint">
+        <item name="android:textSize">@dimen/text_hint</item>
+        <item name="android:textColor">@color/text_sub</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+
+    <!-- ============ 列表行（我的页那种 70dp 行）============ -->
+    <style name="WeiTiku.Row">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/row_height_tall</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:background">?android:attr/selectableItemBackground</item>
+    </style>
+
+    <style name="WeiTiku.Row.Label">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:textSize">@dimen/text_section_title</item>
+        <item name="android:textColor">@color/text_main</item>
+    </style>
+</resources>

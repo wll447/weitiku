@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/tab_tiku" android:title="题库" android:icon="@drawable/ic_tab_tiku" />
+    <item android:id="@+id/tab_practice" android:title="练题" android:icon="@drawable/ic_tab_practice" />
+    <item android:id="@+id/tab_mine" android:title="我的" android:icon="@drawable/ic_tab_mine" />
+</menu>

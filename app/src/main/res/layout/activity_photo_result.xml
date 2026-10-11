@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 拍照结果页，照同类产品 activity_photo_result.xml（toolbar + 图片区 + 结果卡片区） -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF2F2F2"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/toolbar"
+        style="@style/WeiTiku.Toolbar">
+
+        <ImageView
+            android:id="@+id/btn_back"
+            style="@style/WeiTiku.Toolbar.Back" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="拍照搜题结果"
+            android:textColor="@color/text_main"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/btn_adjust_crop"
+            style="@style/WeiTiku.Toolbar.Action"
+            android:text="调整裁剪图" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_content"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <FrameLayout
+            android:id="@+id/fl_image"
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:background="#FF000000">
+
+            <ImageView
+                android:id="@+id/iv_photo_image"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter" />
+
+            <!-- 题目框浮层：每道题一个框（照同类产品 QuestionBoxOverlayView） -->
+            <com.weizh.tiku.ui.widget.view.QuestionBoxOverlayView
+                android:id="@+id/box_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/tv_ocr"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/fl_image"
+            android:layout_marginLeft="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginRight="12dp"
+            android:background="@drawable/btn_bg_rectangle_white"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:padding="10dp"
+            android:text="识别中…"
+            android:textColor="@color/text_sub"
+            android:textSize="12sp" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_result"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/tv_ocr"
+            android:layout_marginTop="4dp"
+            android:clipToPadding="false"
+            android:paddingBottom="16dp" />
+    </RelativeLayout>
+</LinearLayout>

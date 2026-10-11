@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp" android:height="56dp"
+    android:viewportWidth="56" android:viewportHeight="56">
+    <!-- 扫描框四角 + 扫描线 -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M12,18 h10 v4 h-6 v6 h-4 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M44,18 v10 h-4 v-6 h-6 v-4 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M22,34 v4 h-10 v-10 h4 v6 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M34,38 v-4 h6 v-6 h4 v10 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M16,27 h24 v2 h-24 z" />
+</vector>

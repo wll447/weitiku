@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 放大镜：圆心 (16,16) 半径 10，四周留 6 边距；手柄按矩形对角画，全部落在 40x40 视口内。
+     原来圆心在 (17,6)、半径 9，顶部到 y=-3 被视口裁掉，所以看起来顶出框、位置偏上。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp"
+    android:height="40dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+
+    <!-- 镜片外圈 -->
+    <path
+        android:fillColor="#FF6B35"
+        android:pathData="M16,6 a10,10 0 1,0 0,20 a10,10 0 1,0 0,-20 z" />
+    <!-- 镜片内白（做出空心镜片感） -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16,9.5 a6.5,6.5 0 1,0 0,13 a6.5,6.5 0 1,0 0,-13 z" />
+    <!-- 手柄：从镜片边缘斜向右下，宽度约 3.1 -->
+    <path
+        android:fillColor="#FF6B35"
+        android:pathData="M20.95,24.05 L24.05,20.95 L35.55,32.45 L32.45,35.55 z" />
+</vector>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_primary">#FF6B35</color>
+    <color name="brand_primary_dark">#E85A28</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="bg_page">#FFF7F3</color>
+    <color name="text_main">#FF222222</color>
+    <color name="text_sub">#FF888888</color>
+    <color name="divider">#FFEDEDED</color>
+
+    <!-- 以下照同类产品 colors.xml 取值 -->
+    <color name="black">#FF000000</color>
+    <color name="black44">#44000000</color>
+    <color name="black99">#99000000</color>
+    <color name="blacke7">#FFE7E7E7</color>
+    <color name="float_bg">#F2202020</color>
+    <color name="about_bg">#FFF7F3</color>
+    <color name="black33">#FF333333</color>
+    <color name="result_accent">#FFFFF478</color>
+    <color name="vip_gold">#FFFFE1AB</color>
+    <color name="transparent_black">#94333232</color>
+</resources>

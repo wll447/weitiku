@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 魏题库设计规范：所有二级/三级页面共用这些尺寸，不要再各页自己写数字 -->
+<resources>
+    <!-- 顶部栏（二级/三级页面统一） -->
+    <dimen name="toolbar_height">48dp</dimen>
+    <dimen name="toolbar_back">32dp</dimen>
+    <dimen name="toolbar_back_padding">4dp</dimen>
+    <dimen name="toolbar_margin_h">16dp</dimen>
+
+    <!-- 页面与卡片 -->
+    <dimen name="page_padding">16dp</dimen>
+    <dimen name="card_margin_h">12dp</dimen>
+    <dimen name="card_margin_v">12dp</dimen>
+    <dimen name="card_radius">12dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+
+    <!-- 字号层级：页内大标题 / 标题 / 正文 / 辅助 / 极小 -->
+    <dimen name="text_page_title">18sp</dimen>
+    <dimen name="text_section_title">17sp</dimen>
+    <dimen name="text_title">16sp</dimen>
+    <dimen name="text_body">14sp</dimen>
+    <dimen name="text_hint">12sp</dimen>
+    <dimen name="text_tiny">10sp</dimen>
+
+    <!-- 按钮 -->
+    <dimen name="btn_height">40dp</dimen>
+    <dimen name="btn_radius">20dp</dimen>
+    <dimen name="btn_padding_h">16dp</dimen>
+
+    <!-- 列表行 -->
+    <dimen name="row_height">64dp</dimen>
+    <dimen name="row_height_tall">70dp</dimen>
+</resources>

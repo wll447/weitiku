@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+            <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<application
+        android:name=".WeiTikuApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WeiTiku">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.SearchActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateVisible|adjustResize" />
+
+        <activity
+            android:name=".ui.ImportGuideActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.TikuDetailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ExerciseActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.PracticeActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.scan.ScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.WeiTiku.Fullscreen" />
+            <activity android:name=".ui.photo.PhotoCameraActivity" android:exported="false" />
+        <activity android:name=".ui.photo.PhotoCropActivity" android:exported="false" />
+        <activity android:name=".ui.photo.PhotoResultActivity" android:exported="false" />
+        <activity android:name=".ui.screen.ScreenSearchActivity" android:exported="false" />
+        <service
+            android:name=".ocr.OcrIsolateService"
+            android:exported="false"
+            android:process=":ocr" />
+
+        <service
+            android:name=".ui.screen.ScreenSearchService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
+    </application>
+
+</manifest>

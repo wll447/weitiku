@@ -1,0 +1,44 @@
+# 构建产物
+build/
+.gradle/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 签名与密钥（绝不入库）
+*.jks
+*.keystore
+keystore.properties
+
+# 我自己的调试素材，不该进仓库
+vid/
+vid2/
+vid3/
+*.mp4
+shot*.png
+crop*.png
+live*.png
+now.png
+res1.png
+auto*.png
+box1.png
+*.log
+*.csv
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# 我自己的调试素材（截图/脚本/临时 SQL），不进仓库
+/*.png
+/*.py
+/*.sql
+/local.properties
+/版面模型-接入说明.md
+*.mp4
