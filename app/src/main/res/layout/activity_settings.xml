@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/WeiTiku.Page"
+    android:orientation="vertical">
+
+    <RelativeLayout style="@style/WeiTiku.Toolbar">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            style="@style/WeiTiku.Toolbar.Back" />
+
+        <TextView
+            style="@style/WeiTiku.Toolbar.Title"
+            android:text="设置" />
+    </RelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="@color/divider" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
+
+            <TextView
+                style="@style/WeiTiku.Text.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginTop="18dp"
+                android:text="搜题" />
+
+            <androidx.cardview.widget.CardView
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                style="@style/WeiTiku.Card"
+                app:cardCornerRadius="@dimen/card_radius"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/ll_ai"
+                        style="@style/WeiTiku.Row">
+
+                        <TextView
+                            style="@style/WeiTiku.Row.Label"
+                            android:text="云端 AI 兜底" />
+
+                        <TextView
+                            android:id="@+id/tv_ai_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginRight="16dp"
+                            android:text="未开启"
+                            android:textColor="@color/text_sub"
+                            android:textSize="@dimen/text_body" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginLeft="16dp"
+                        android:background="@color/divider" />
+
+                    <LinearLayout
+                        android:id="@+id/ll_guide"
+                        style="@style/WeiTiku.Row">
+
+                        <TextView
+                            style="@style/WeiTiku.Row.Label"
+                            android:text="题库导入方法" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                style="@style/WeiTiku.Text.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginTop="18dp"
+                android:text="题库" />
+
+            <androidx.cardview.widget.CardView
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                style="@style/WeiTiku.Card"
+                app:cardCornerRadius="@dimen/card_radius"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/ll_normalize"
+                        style="@style/WeiTiku.Row">
+
+                        <TextView
+                            style="@style/WeiTiku.Row.Label"
+                            android:text="重新加工已有题库" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginLeft="16dp"
+                        android:background="@color/divider" />
+
+                    <LinearLayout
+                        android:id="@+id/ll_reindex"
+                        style="@style/WeiTiku.Row">
+
+                        <TextView
+                            style="@style/WeiTiku.Row.Label"
+                            android:text="重建题库索引" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                style="@style/WeiTiku.Text.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginTop="18dp"
+                android:text="数据" />
+
+            <androidx.cardview.widget.CardView
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                style="@style/WeiTiku.Card"
+                app:cardCornerRadius="@dimen/card_radius"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:id="@+id/ll_clear"
+                    style="@style/WeiTiku.Row">
+
+                    <TextView
+                        style="@style/WeiTiku.Row.Label"
+                        android:text="清空做题记录" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:id="@+id/tv_version"
+                style="@style/WeiTiku.Text.Hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="26dp"
+                android:gravity="center"
+                android:text="魏题库 v1.1.0" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

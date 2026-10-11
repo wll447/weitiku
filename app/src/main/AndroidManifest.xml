@@ -32,6 +32,9 @@
             android:windowSoftInputMode="stateVisible|adjustResize" />
 
         <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".ui.ImportGuideActivity"
             android:exported="false" />
         <activity

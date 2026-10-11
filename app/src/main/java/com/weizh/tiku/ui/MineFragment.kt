@@ -38,31 +38,7 @@ class MineFragment : Fragment() {
         b.llFav.setOnClickListener { play(Repo.PracticeMode.FAV, "我的收藏") }
 
         b.llSettings.setOnClickListener {
-            AlertDialog.Builder(requireContext())
-                .setTitle("设置")
-                .setItems(arrayOf("题库导入方法", "云端 AI 兜底", "重新加工已有题库", "重建题库索引", "清空做题记录")) { _, which ->
-                    when (which) {
-                        0 -> startActivity(
-                            Intent(requireContext(), ImportGuideActivity::class.java)
-                        )
-                        1 -> cloudSettings()
-                        2 -> viewLifecycleOwner.lifecycleScope.launch {
-                            val n = withContext(Dispatchers.IO) { Repo.renormalizeAll(requireContext()) }
-                            toast("已重新加工 $n 道题（去水印/剥题号/选项去前缀/答案规整）")
-                            refresh()
-                        }
-                        3 -> viewLifecycleOwner.lifecycleScope.launch {
-                            val n = withContext(Dispatchers.IO) { Repo.rebuildIndex(requireContext()) }
-                            toast("索引已重建，共 $n 题")
-                        }
-                        4 -> {
-                            Db.get(requireContext()).clearAnswerLog()
-                            toast("做题记录已清空")
-                            refresh()
-                        }
-                    }
-                }
-                .show()
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
 
         b.llShare.setOnClickListener {
@@ -86,39 +62,6 @@ class MineFragment : Fragment() {
                 .setPositiveButton("知道了", null)
                 .show()
         }
-    }
-
-    /** 云端 AI 兜底设置：填智谱 API Key（GLM-4V-Flash 免费），只存本机 */
-    private fun cloudSettings() {
-        val ctx = requireContext()
-        val input = android.widget.EditText(ctx).apply {
-            hint = "粘贴智谱 API Key"
-            setText(com.weizh.tiku.cloud.CloudVlm.apiKey(ctx))
-            setSingleLine()
-            setPadding(48, 24, 48, 24)
-        }
-        val on = com.weizh.tiku.cloud.CloudVlm.isEnabled(ctx)
-        AlertDialog.Builder(ctx)
-            .setTitle(if (on) "云端 AI 兜底（已开启）" else "云端 AI 兜底（未开启）")
-            .setMessage(
-                "本地 OCR + 本地题库都搜不到时，把整页图发给智谱 GLM-4V-Flash（官方免费），" +
-                    "让它直接输出结构化题目和答案。\n\n" +
-                    "· Key 只存在本机，不会打进 APK\n" +
-                    "· 题目图片会上传到智谱，涉密内容别用\n" +
-                    "· 本地能搜到时不联网"
-            )
-            .setView(input)
-            .setPositiveButton("保存并开启") { _, _ ->
-                com.weizh.tiku.cloud.CloudVlm.setApiKey(ctx, input.text.toString())
-                com.weizh.tiku.cloud.CloudVlm.setEnabled(ctx, true)
-                toast("已开启云端兜底")
-            }
-            .setNeutralButton("关闭此功能") { _, _ ->
-                com.weizh.tiku.cloud.CloudVlm.setEnabled(ctx, false)
-                toast("已关闭云端兜底")
-            }
-            .setNegativeButton("取消", null)
-            .show()
     }
 
     override fun onResume() {
