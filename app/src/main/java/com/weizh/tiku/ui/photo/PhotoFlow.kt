@@ -60,6 +60,14 @@ object OcrSearch {
 
         // ① 整段当一道题去匹配
         var (rows, _) = SearchEngine.get().searchForScan(text, topN)
+        // 【关键】本地命中判定 —— 照同类产品 PhotoResultActivity.searchLocalForCard 的规则：
+        //     lcsLen >= 8 且 lcsLen / queryLen >= LOCAL_MATCH_MIN_RATIO(0.6)
+        // 不满足就认为"本地题库未匹配到该题目"，继续往下走（最终会交给云端作答）。
+        // 之前缺这道判定 → 拍"中国的首都在哪里"会把共享 中/国/的/在 的无关铁路题当命中返回，
+        // 而且因为"本地有结果"，云端兜底永远轮不到。
+        val qLen = text.count { !it.isWhitespace() }
+        val needLcs = localMatchMinLcs(qLen)
+        rows = rows.filter { it.lcs >= needLcs && it.ratio >= LOCAL_MATCH_MIN_RATIO }
         if (rows.isNotEmpty()) return text to rows
 
         // ② 整段匹配不到，说明拍到了整页（多道题/带其他文字）：
@@ -68,6 +76,8 @@ object OcrSearch {
         val cands = lines.filter { it.count { c -> !c.isWhitespace() } >= 6 }.mapNotNull { line ->
             val (h, _) = SearchEngine.get().searchForScan(line, 1)
             val top = h.firstOrNull() ?: return@mapNotNull null
+            val lLen = line.count { !it.isWhitespace() }
+            if (top.lcs < localMatchMinLcs(lLen) || top.ratio < LOCAL_MATCH_MIN_RATIO) return@mapNotNull null
             Best(line, h, top.lcs)
         }
         val best = cands.maxByOrNull { it.lcs } ?: return cloudTry(ctx, bmp, text)
@@ -615,6 +625,16 @@ class PhotoResultActivity : AppCompatActivity() {
 }
 
 /** 采样判断位图是否接近全黑（相机没出图时常见）。每 16 像素取一个点，看最大通道值。 */
+/** 本地命中最低覆盖率（照同类产品 PhotoResultActivity 的 LOCAL_MATCH_MIN_RATIO = 0.6） */
+private const val LOCAL_MATCH_MIN_RATIO = 0.6
+
+/**
+ * 本地命中要求的最短公共片段。同类产品硬编码 8，但很短的题干（判断题等）
+ * 永远达不到 8，所以短查询按 60% 放宽，下限 3。
+ */
+private fun localMatchMinLcs(queryLen: Int): Int =
+    minOf(8, maxOf(3, (queryLen * LOCAL_MATCH_MIN_RATIO).toInt()))
+
 private fun isNearlyBlack(bmp: Bitmap): Boolean {
     val w = bmp.width
     val h = bmp.height

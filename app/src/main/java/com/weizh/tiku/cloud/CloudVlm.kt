@@ -123,6 +123,51 @@ object CloudVlm {
         - 若图中没有题目，返回 {"questions":[]}
     """.trimIndent()
 
+    /** 上一次调用的错误描述（供 UI 显示，别再静默吞掉） */
+    @Volatile
+    var lastError: String? = null
+        private set
+
+    /** 候选模型：用户选的在前，后面跟该厂商的其它视觉模型（用于 429 降级） */
+    private fun modelCandidates(ctx: Context): List<String> {
+        val out = ArrayList<String>()
+        out.add(model(ctx))
+        for (m in provider(ctx).visionModels) if (m !in out) out.add(m)
+        return out
+    }
+
+    /**
+     * 带降级的调用。免费模型（如 glm-4.6v-flash）经常返回 429「访问量过大」，
+     * 这时自动换同厂商的下一个视觉模型重试。返回 (正文, 错误描述)。
+     */
+    private fun callWithFallback(ctx: Context, buildBody: (String) -> String): Pair<String?, String> {
+        val key = apiKey(ctx)
+        if (!isEnabled(ctx) || key.isBlank()) return null to "云端未开启或未填 Key"
+        var lastErr = "未知错误"
+        for (m in modelCandidates(ctx)) {
+            val r = runCatching { postOnce(ctx, key, buildBody(m)) }
+            val (code, body) = r.getOrElse { e ->
+                lastErr = "${e.javaClass.simpleName}: ${e.message}"
+                return@getOrElse -1 to ""
+            }
+            if (code in 200..299) {
+                val txt = chatText(body)
+                if (!txt.isNullOrBlank()) { lastError = null; return txt to "" }
+                lastErr = "响应无法解析"
+                continue
+            }
+            // 429/5xx：换下一个模型重试；其它错误（Key 错/模型不存在）直接返回
+            val msg = runCatching {
+                org.json.JSONObject(body).optJSONObject("error")?.optString("message")
+            }.getOrNull()
+            lastErr = "http $code${if (msg.isNullOrBlank()) "" else " $msg"} [$m]"
+            if (code == 429 || code >= 500) continue
+            break
+        }
+        lastError = lastErr
+        return null to lastErr
+    }
+
     private fun endpoint(ctx: Context): String {
         val b = base(ctx).trimEnd('/')
         return if (b.endsWith("/chat/completions")) b else "$b/chat/completions"
@@ -147,10 +192,17 @@ object CloudVlm {
             put("temperature", 0.2)
             put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", content)))
         }
-        val raw = runCatching { post(ctx, key, body.toString()) }.getOrElse {
-            Log.w(TAG, "structure failed: ${it.javaClass.simpleName}")
+        val (raw, err) = callWithFallback(ctx) { m ->
+            JSONObject().apply {
+                put("model", m)
+                put("temperature", 0.2)
+                put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", content)))
+            }.toString()
+        }
+        if (raw.isNullOrBlank()) {
+            Log.w(TAG, "structure failed: $err")
             return null
-        } ?: return null
+        }
         return runCatching { parse(raw) }.getOrElse { null }
     }
 
@@ -171,7 +223,14 @@ object CloudVlm {
             put("temperature", 0.2)
             put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", ask)))
         }
-        val raw = runCatching { post(ctx, key, body.toString()) }.getOrNull() ?: return null
+        val (raw, _) = callWithFallback(ctx) { m ->
+            JSONObject().apply {
+                put("model", m)
+                put("temperature", 0.2)
+                put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", ask)))
+            }.toString()
+        }
+        if (raw.isNullOrBlank()) return null
         return runCatching {
             val s = raw.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
             val i = s.indexOf('{'); val j = s.lastIndexOf('}')
@@ -219,6 +278,65 @@ object CloudVlm {
         }
     }
 
+    /**
+     * 自检：把厂商/模型/Key 状态 + /models 结果 + 一次真实调用的 http 码与响应体
+     * 全部返回，供 `--ez cloudtest true` 打日志用（这一步是为了在没有日志的机型上定位问题）。
+     */
+    fun selfTest(ctx: Context): String {
+        val p = provider(ctx)
+        val sb = StringBuilder()
+        sb.append("provider=${p.id} (${p.name})\n")
+        sb.append("enabled=${isEnabled(ctx)}  providerVision=${p.vision}\n")
+        sb.append("model='").append(model(ctx)).append("'\n")
+        sb.append("base='").append(base(ctx)).append("'\n")
+        sb.append("endpoint='").append(endpoint(ctx)).append("'\n")
+        sb.append("keyLen=").append(apiKey(ctx).length).append("\n")
+
+        val models = listModels(ctx)
+        sb.append("listModels=").append(if (models == null) "FAILED" else "ok ${models.size}: ${models.take(8)}").append("\n")
+
+        val key = apiKey(ctx)
+        if (key.isBlank()) { sb.append("!!! NO API KEY\n"); return sb.toString() }
+
+        // 一次真实调用：纯文本（不传图），只看能不能通
+        val body = JSONObject().apply {
+            put("model", model(ctx))
+            put("temperature", 0.1)
+            put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "只回答两个字：收到")))
+        }.toString()
+        sb.append("--- chat/completions 探测 ---\n")
+        val conn = (URL(endpoint(ctx)).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20000
+            readTimeout = 40000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            setRequestProperty("Authorization", "Bearer $key")
+        }
+        try {
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(body) }
+            val code = conn.responseCode
+            val resp = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            sb.append("http=").append(code).append("\n")
+            sb.append("resp=").append(resp.take(600)).append("\n")
+            sb.append("parsed=").append(chatText(resp)?.take(80) ?: "null").append("\n")
+        } catch (e: Throwable) {
+            sb.append("EXCEPTION ").append(e.javaClass.name).append(": ").append(e.message).append("\n")
+        } finally {
+            conn.disconnect()
+        }
+
+        // 走真实业务路径（含 429 自动降级），验证能不能拿到结果
+        sb.append("--- 降级链路验证（explain）---\n")
+        val r = explain(ctx, "1+1=?", listOf("1", "2", "3"), "B")
+        sb.append("explain=").append(if (r.isNullOrBlank()) "FAILED" else "ok: " + r.take(60)).append("\n")
+        sb.append("lastError=").append(lastError ?: "null").append("\n")
+        // 只试实际用到的模型链
+        sb.append("candidates=").append(modelCandidates(ctx).toString()).append("\n")
+        return sb.toString()
+    }
+
     /** 练题页 AI 解析（纯文本） */
     fun explain(ctx: Context, stem: String, options: List<String>, answer: String): String? {
         if (!isEnabled(ctx)) return null
@@ -231,8 +349,14 @@ object CloudVlm {
             put("temperature", 0.3)
             put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", ask)))
         }
-        val raw = runCatching { post(ctx, key, body.toString()) }.getOrNull() ?: return null
-        return raw.takeIf { it.isNotBlank() }
+        val (raw, _) = callWithFallback(ctx) { m ->
+            JSONObject().apply {
+                put("model", m)
+                put("temperature", 0.3)
+                put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", ask)))
+            }.toString()
+        }
+        return raw?.takeIf { it.isNotBlank() }
     }
 
     // ---------- 内部 ----------
@@ -268,6 +392,27 @@ object CloudVlm {
                 return null
             }
             return chatText(resp)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    /** 单次请求，返回 (http 码, 响应体)；不吞错，交给上层决定是否降级 */
+    private fun postOnce(ctx: Context, key: String, json: String): Pair<Int, String> {
+        val conn = (URL(endpoint(ctx)).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = TIMEOUT_MS
+            readTimeout = TIMEOUT_MS
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            setRequestProperty("Authorization", "Bearer $key")
+        }
+        return try {
+            OutputStreamWriter(conn.outputStream, "UTF-8").use { it.write(json) }
+            val code = conn.responseCode
+            val body = (if (code in 200..299) conn.inputStream else conn.errorStream)
+                ?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            code to body
         } finally {
             conn.disconnect()
         }

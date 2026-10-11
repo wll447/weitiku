@@ -44,6 +44,21 @@ class MainActivity : AppCompatActivity() {
             Log.i("WeiTikuSelfTest", "trigger self test")
             runSelfTest()
         }
+        if (BuildConfig.DEBUG && intent?.getBooleanExtra("cloudtest", false) == true) {
+            Log.i("WeiTikuSelfTest", "trigger cloud test")
+            lifecycleScope.launch(Dispatchers.IO) {
+                // 允许用 extra 直接注入 key/模型，省得在模拟器上点 UI
+                intent?.getStringExtra("apikey")?.takeIf { it.isNotBlank() }?.let {
+                    com.weizh.tiku.cloud.CloudVlm.setApiKey(this@MainActivity, it)
+                    com.weizh.tiku.cloud.CloudVlm.setEnabled(this@MainActivity, true)
+                }
+                intent?.getStringExtra("model")?.takeIf { it.isNotBlank() }?.let {
+                    com.weizh.tiku.cloud.CloudVlm.setModel(this@MainActivity, it)
+                }
+                val out = com.weizh.tiku.cloud.CloudVlm.selfTest(this@MainActivity)
+                Log.i("WeiTikuSelfTest", "=== CLOUD SELFTEST ===\n" + out)
+            }
+        }
         if (BuildConfig.DEBUG && intent?.getBooleanExtra("ocrtest", false) == true) {
             Log.i("WeiTikuSelfTest", "trigger ocr test")
             runOcrTest()
